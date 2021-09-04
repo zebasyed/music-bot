@@ -21,6 +21,7 @@
     "lodash": "^4.17.20",
     "node-opus": "^0.3.3",
     "opusscript": "0.0.8",
-    "ytdl-core": "^4.9.1"
+    "ytdl-core": "^4.9.1",
+    "ytsr": "^3.5.3"
   }
 }

@@ -3,6 +3,16 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 const Discord = require("discord.js");
 const { prefix, token } = require("./config.json");
 const ytdl = require("ytdl-core");
+const ytsr = require('ytsr');
+
+// const filters1 = await ytsr.getFilters('github');
+// const filter1 = filters1.get('Type').get('Video');
+// const filters2 = await ytsr.getFilters(filter1.url);
+// const filter2 = filters2.get('Features').get('Live');
+// const options = {
+//   pages: 2,
+// }
+
 
 const client = new Discord.Client();
 
@@ -21,19 +31,19 @@ client.once("disconnect", () => {
 });
 
 client.on("message", async message => {
-    client.user.setUsername("Rubato Sonata");
+   // client.user.setUsername("Rubato Sonata");
   if (message.author.bot) return;
   if (!message.content.startsWith(prefix)) return;
-
   const serverQueue = queue.get(message.guild.id);
-    // console.log("queue",serverQueue)
-  if (message.content.startsWith(`${prefix}play`)) {
-    execute(message, serverQueue);
-    return;
-  } else if (message.content.startsWith(`${prefix}skip`)) {
+  // if (message.content.startsWith(`${prefix}play`)) {
+  //   execute(message, serverQueue);
+  //   return;
+  // } 
+  // else 
+  if (message.content.startsWith(`${prefix}skip`)) {
     skip(message, serverQueue);
     return;
-  } else if (message.content.startsWith(`${prefix}stop`)) {
+  } else if (message.content.startsWith(`${prefix}leave`)) {
     stop(message, serverQueue);
     return;
   }else if (message.content.startsWith(`${prefix}queue`)){
@@ -42,8 +52,13 @@ client.on("message", async message => {
   } else if (message.content.startsWith(`${prefix}delete`)){
     deleteQueue(message, serverQueue)
     return;
-  } 
-  
+  } else if (message.content.startsWith(`${prefix}play`)){
+    const searchResults = await ytsr(message.content.split("play ")[1],{ pages: 1 });
+    //console.log("+play " +searchResults.items[0].url);
+    executeNourl(message,serverQueue,searchResults.items[0].url)
+  }else if (message.content.startsWith(`${prefix}help`)){
+    help(message,serverQueue)
+  }
   else {
     message.channel.send("You need to enter a valid command!");
   }
@@ -97,6 +112,71 @@ async function execute(message, serverQueue) {
     serverQueue.songs.push(song);
     return message.channel.send(`${song.title} has been added to the queue!`);
   }
+}
+
+async function executeNourl(message, serverQueue,url) {
+  const args = url;
+
+  const voiceChannel = message.member.voice.channel;
+  if (!voiceChannel)
+    return message.channel.send(
+      "You need to be in a voice channel to play music!"
+    );
+  const permissions = voiceChannel.permissionsFor(message.client.user);
+  if (!permissions.has("CONNECT") || !permissions.has("SPEAK")) {
+    return message.channel.send(
+      "I need the permissions to join and speak in your voice channel!"
+    );
+  }
+
+  const songInfo = await ytdl.getInfo(args);
+  const song = {
+        title: songInfo.videoDetails.title,
+        url: songInfo.videoDetails.video_url,
+   };
+
+  if (!serverQueue) {
+    const queueContruct = {
+      textChannel: message.channel,
+      voiceChannel: voiceChannel,
+      connection: null,
+      songs: [],
+      volume: 5,
+      playing: true
+    };
+
+    queue.set(message.guild.id, queueContruct);
+
+    queueContruct.songs.push(song);
+
+    try {
+      var connection = await voiceChannel.join();
+      queueContruct.connection = connection;
+      play(message.guild, queueContruct.songs[0]);
+    } catch (err) {
+      console.log(err);
+      queue.delete(message.guild.id);
+      return message.channel.send(err);
+    }
+  } else {
+    serverQueue.songs.push(song);
+    return message.channel.send(`${song.title} has been added to the queue!`);
+  }
+}
+
+function help(message, serverQueue) {
+  const file = new Discord.MessageAttachment('../assets/logo.jpeg');
+  const help = new Discord.MessageEmbed()
+  .setColor('#FFC000')
+  .setThumbnail('attachment://logo.jpeg')
+  .addFields([
+    {
+      name: '\u200B',
+      value: "**HAALLLPPP!!!**\n\n__Commands__\n\n-play\n<plays the song or url>\n\n-skip\n<Skips Duh .. >\n\n-leave\n<Runs for life and leaves the VC>\n\n-queue\n<Dont even... yeah it queues>",
+      isInline: true
+    }
+  ])
+  message.channel.send(help)
 }
 
 function skip(message, serverQueue) {
@@ -165,6 +245,13 @@ function play(guild, song) {
     queue.delete(guild.id);
     return;
   }
+
+  async function searchYouTubeAsync(args) {
+    var video = await youtube.searchVideos(args.toString().replace(/,/g,' '));
+    console.log(video.url);
+    console.log(typeof String(video.url));
+    return String(video.url);
+ }
 
   const dispatcher = serverQueue.connection
     .play(ytdl(song.url))
