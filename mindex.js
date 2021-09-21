@@ -53,6 +53,10 @@ client.on("message", async message => {
     deleteQueue(message, serverQueue)
     return;
   } else if (message.content.startsWith(`${prefix}play`)){
+    if(!message.content.split("play ")[1]){
+      message.channel.send('You need to mention a song')
+      return;
+    }
     const searchResults = await ytsr(message.content.split("play ")[1],{ pages: 1 });
     //console.log("+play " +searchResults.items[0].url);
     executeNourl(message,serverQueue,searchResults.items[0].url)
@@ -198,8 +202,9 @@ function stop(message, serverQueue) {
   if (!serverQueue)
     return message.channel.send("There is no song that I could stop!");
     
-  serverQueue.songs = [];
+  
   serverQueue.connection.dispatcher.end();
+  serverQueue.songs = [];
 }
 
 function deleteQueue(message, serverQueue){
