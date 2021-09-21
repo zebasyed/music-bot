@@ -40,32 +40,36 @@ client.on("message", async message => {
   //   return;
   // } 
   // else 
-  if (message.content.startsWith(`${prefix}skip`)) {
-    skip(message, serverQueue);
-    return;
-  } else if (message.content.startsWith(`${prefix}leave`)) {
-    stop(message, serverQueue);
-    return;
-  }else if (message.content.startsWith(`${prefix}queue`)){
-    queueList(message, serverQueue)
-    return;
-  } else if (message.content.startsWith(`${prefix}delete`)){
-    deleteQueue(message, serverQueue)
-    return;
-  } else if (message.content.startsWith(`${prefix}play`)){
-    if(!message.content.split("play ")[1]){
-      message.channel.send('You need to mention a song')
+  if(prefix === '-'){
+    console.log("Inside")
+    if (message.content.startsWith(`${prefix}skip`)) {
+      skip(message, serverQueue);
       return;
+    } else if (message.content.startsWith(`${prefix}leave`)) {
+      stop(message, serverQueue);
+      return;
+    }else if (message.content.startsWith(`${prefix}queue`)){
+      queueList(message, serverQueue)
+      return;
+    } else if (message.content.startsWith(`${prefix}delete`)){
+      deleteQueue(message, serverQueue)
+      return;
+    } else if (message.content.startsWith(`${prefix}play`)){
+      if(message.content.split("+play ")[1]){
+        message.channel.send('You need to mention a song')
+        return;
+      }
+      const searchResults = await ytsr(message.content.split("play ")[1],{ pages: 1 });
+      //console.log("+play " +searchResults.items[0].url);
+      executeNourl(message,serverQueue,searchResults.items[0].url)
+    }else if (message.content.startsWith(`${prefix}help`)){
+      help(message,serverQueue)
     }
-    const searchResults = await ytsr(message.content.split("play ")[1],{ pages: 1 });
-    //console.log("+play " +searchResults.items[0].url);
-    executeNourl(message,serverQueue,searchResults.items[0].url)
-  }else if (message.content.startsWith(`${prefix}help`)){
-    help(message,serverQueue)
+    else {
+      message.channel.send("You need to enter a valid command!");
+    }
   }
-  else {
-    message.channel.send("You need to enter a valid command!");
-  }
+  
 });
 
 async function execute(message, serverQueue) {
